@@ -33,7 +33,7 @@ version 1.5 (3/19/11)
 	  an `events` property (function or array) with additional properties that will
 	  be applied to the entire event source:
 		- color (changes both background and border)
-		- backgroudColor
+		- backgroundColor
 		- borderColor
 		- textColor
 		- className
