@@ -36,7 +36,6 @@ function EventManager(options, _sources) {
 	var stickySource = { events: [] };
 	var sources = [ stickySource ];
 	var rangeStart, rangeEnd;
-	var offsetStart, offsetEnd;
 	var currentFetchID = 0;
 	var pendingSourceCnt = 0;
 	var loadingLevel = 0;
@@ -61,8 +60,6 @@ function EventManager(options, _sources) {
 	function fetchEvents(start, end) {
 		rangeStart = start;
 		rangeEnd = end;
-		offsetStart = start.getTimezoneOffset()*60*1000;
-		offsetEnd = end.getTimezoneOffset()*60*1000;
 		cache = [];
 		var fetchID = ++currentFetchID;
 		var len = sources.length;
@@ -134,18 +131,10 @@ function EventManager(options, _sources) {
 				var startParam = firstDefined(source.startParam, options.startParam);
 				var endParam = firstDefined(source.endParam, options.endParam);
 				if (startParam) {
-					var tmpstart = rangeStart;
-					if (source.startParamUTC) {
-						tmpstart -= offsetStart;
-					}
-					data[startParam] = Math.round(+tmpstart / 1000);
+					data[startParam] = (options.startEndDateOnly) ? (rangeStart.getYear()+'-'+(rangeStart.getMonth()+1)+'-'+rangeStart.getDate()) : Math.round(+rangeStart / 1000);
 				}
 				if (endParam) {
-					var tmpend = rangeEnd;
-					if (source.endParamUTC) {
-						tmpend -= offsetEnd;
-					}
-					data[endParam] = Math.round(+tmpend / 1000);
+					data[endParam] = (options.startEndDateOnly) ? (rangeEnd.getYear()+'-'+(rangeEnd.getMonth()+1)+'-'+rangeEnd.getDate()) : Math.round(+rangeEnd / 1000);
 				}
 				pushLoading();
 				$.ajax($.extend({}, ajaxDefaults, source, {
