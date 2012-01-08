@@ -396,8 +396,7 @@ function AgendaEventRenderer() {
 									setOuterHeight(
 										eventElement,
 										slotHeight * Math.round(
-											(event.end ? ((event.end - event.start) / MINUTE_MS) : opt('defaultEventMinutes'))
-											/ opt('slotMinutes')
+											(event.end ? ((event.end - event.start) / MINUTE_MS) : opt('defaultEventMinutes')) / opt('slotMinutes')
 										)
 									);
 									eventElement.draggable('option', 'grid', [colWidth, 1]);
