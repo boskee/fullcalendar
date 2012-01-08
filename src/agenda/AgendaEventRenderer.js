@@ -357,6 +357,8 @@ function AgendaEventRenderer() {
 	// when event starts out FULL-DAY
 	
 	function draggableDayEvent(event, eventElement, isStart) {
+		if (!eventElement.draggable)
+			return;	
 		var origWidth;
 		var revert;
 		var allDay=true;

@@ -96,6 +96,9 @@ function BasicEventRenderer() {
 	
 	
 	function draggableDayEvent(event, eventElement) {
+		if (!eventElement.draggable)
+			return;	
+			
 		var hoverListener = getHoverListener();
 		var dayDelta;
 		eventElement.draggable({
