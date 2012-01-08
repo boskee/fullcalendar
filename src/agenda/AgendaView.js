@@ -52,6 +52,8 @@ function AgendaView(element, calendar, viewName) {
 	t.getColCnt = function() { return colCnt };
 	t.getColWidth = function() { return colWidth };
 	t.getSlotHeight = function() { return slotHeight };
+	t.getBorderHeight = function() { return borderHeight };
+	t.getSlotTableHeight = function() { return slotTable.height() };
 	t.defaultSelectionEnd = defaultSelectionEnd;
 	t.renderDayOverlay = renderDayOverlay;
 	t.renderSelection = renderSelection;
@@ -96,7 +98,8 @@ function AgendaView(element, calendar, viewName) {
 	var slotContent;
 	var slotSegmentContainer;
 	var slotTable;
-	var slotTableFirstInner;
+	var slotTableFirstRow;
+	var slotTableSecondRow;
 	var axisFirstCells;
 	var gutterCells;
 	var selectionHelper;
@@ -107,6 +110,7 @@ function AgendaView(element, calendar, viewName) {
 	var colWidth;
 	var gutterWidth;
 	var slotHeight; // TODO: what if slotHeight changes? (see issue 650)
+	var borderHeight;
 	var savedScrollTop;
 	
 	var colCnt;
@@ -296,7 +300,8 @@ function AgendaView(element, calendar, viewName) {
 			"</tbody>" +
 			"</table>";
 		slotTable = $(s).appendTo(slotContent);
-		slotTableFirstInner = slotTable.find('div:first');
+		slotTableFirstRow = slotTable.find('tr:first');
+		slotTableSecondRow = slotTable.find('tr:nth-child(2)');
 		
 		slotBind(slotTable.find('td'));
 		
@@ -351,7 +356,8 @@ function AgendaView(element, calendar, viewName) {
 		}
 		slotLayer.css('top', headHeight);
 		
-		slotHeight = slotTableFirstInner.height() + 1; // +1 for border
+		slotHeight = slotTableSecondRow.outerHeight();
+		borderHeight = slotHeight - slotTableFirstRow.outerHeight();
 		
 		if (dateChanged) {
 			resetScroll();
@@ -401,7 +407,7 @@ function AgendaView(element, calendar, viewName) {
 		var d0 = zeroDate();
 		var scrollDate = cloneDate(d0);
 		scrollDate.setHours(opt('firstHour'));
-		var top = timePosition(d0, scrollDate) + 1; // +1 for the border
+		var top = timePosition(d0, scrollDate) + borderHeight;
 		function scroll() {
 			slotScroller.scrollTop(top);
 		}
@@ -624,7 +630,7 @@ function AgendaView(element, calendar, viewName) {
 			slotTop = slotTopCache[slotI] = slotTable.find('tr:eq(' + slotI + ') td div')[0].offsetTop; //.position().top; // need this optimization???
 		}
 		return Math.max(0, Math.round(
-			slotTop - 1 + slotHeight * ((minutes % slotMinutes) / slotMinutes)
+			slotTop + slotHeight * ((minutes % slotMinutes) / slotMinutes)
 		));
 	}
 	
@@ -684,6 +690,9 @@ function AgendaView(element, calendar, viewName) {
 				var rect = coordinateGrid.rect(0, col, 0, col, slotContent); // only for horizontal coords
 				var top = timePosition(startDate, startDate);
 				var bottom = timePosition(startDate, endDate);
+				if (bottom < slotTable.height()) {
+				  bottom -= borderHeight;
+				}
 				if (bottom > top) { // protect against selections that are entirely before or after visible range
 					rect.top = top;
 					rect.height = bottom - top;

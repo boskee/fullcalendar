@@ -36,6 +36,8 @@ function AgendaEventRenderer() {
 	var getColCnt = t.getColCnt;
 	var getColWidth = t.getColWidth;
 	var getSlotHeight = t.getSlotHeight;
+	var getBorderHeight = t.getBorderHeight;
+	var getSlotTableHeight = t.getSlotTableHeight;
 	var getBodyContent = t.getBodyContent;
 	var reportEventElement = t.reportEventElement;
 	var showEvents = t.showEvents;
@@ -139,7 +141,6 @@ function AgendaEventRenderer() {
 	// renders events in the 'time slots' at the bottom
 	
 	function renderSlotSegs(segs, modifiedEventId) {
-	
 		var i, segCnt=segs.length, seg,
 			event,
 			classes,
@@ -160,7 +161,9 @@ function AgendaEventRenderer() {
 			height,
 			slotSegmentContainer = getSlotSegmentContainer(),
 			rtl, dis, dit,
-			colCnt = getColCnt();
+			colCnt = getColCnt(),
+			borderHeight = getBorderHeight(),
+			slotTableHeight = getSlotTableHeight();
 			
 		if (rtl = opt('isRTL')) {
 			dis = -1;
@@ -176,6 +179,9 @@ function AgendaEventRenderer() {
 			event = seg.event;
 			top = timePosition(seg.start, seg.start);
 			bottom = timePosition(seg.start, seg.end);
+			if (bottom < slotTableHeight) {
+			  bottom -= borderHeight;
+			}				
 			colI = seg.col;
 			levelI = seg.level;
 			forward = seg.forward || 0;
