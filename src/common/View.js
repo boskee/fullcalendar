@@ -189,6 +189,7 @@ function View(element, calendar, viewName) {
 	
 	
 	function eventDrop(e, event, dayDelta, minuteDelta, allDay, ev, ui) {
+	  var events;
 		var oldAllDay = event.allDay;
 		var eventId = event._id;
 		var prop = opt('eventGroupProperty') || 'id';
@@ -217,6 +218,7 @@ function View(element, calendar, viewName) {
 	
 	
 	function eventResize(e, event, dayDelta, minuteDelta, ev, ui) {
+	  var events;
 		var eventId = event._id;
 		var prop = opt('eventGroupProperty') || 'id';
 		if (prop != 'id')
