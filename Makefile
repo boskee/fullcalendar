@@ -8,24 +8,24 @@ OTHER_FILES = \
 	MIT-LICENSE.txt \
 	GPL-LICENSE.txt
 
-VER = $$(cat version.txt)
-VER_SED = sed s/@VERSION/"${VER}"/
-DATE = $$(git log -1 --pretty=format:%ad)
-DATE_SED = sed s/@DATE/"${DATE}"/
+VER = $(shell cat version.txt)
+VER_SED = sed s/@VERSION/"$(VER)"/
+DATE = $(shell git log -1 --pretty=format:%ad)
+DATE_SED = sed s/@DATE/"$(DATE)"/
 
-JQ = $$(sed -nE "s/.*JQUERY[ \t]*=[ \t]*[\"'](.*)[\"'].*/\1/p" "${SRC_DIR}/_loader.js")
-JQUI = $$(sed -nE "s/.*JQUERY_UI[ \t]*=[ \t]*[\"'](.*)[\"'].*/\1/p" "${SRC_DIR}/_loader.js")
+JQ = $(shell sed -ne "s/.*JQUERY[ \t]*=[ \t]*[\"']\(.*\)[\"'].*/\1/p" "$(SRC_DIR)/_loader.js")
+JQUI = $(shell sed -ne "s/.*JQUERY_UI[ \t]*=[ \t]*[\"']\(.*\)[\"'].*/\1/p" "$(SRC_DIR)/_loader.js")
 
-DEMO_FILES = $$(cd ${DEMOS_DIR}; find . -mindepth 1 -maxdepth 1 -type f)
-DEMO_SUBDIRS = $$(cd ${DEMOS_DIR}; find . -mindepth 1 -maxdepth 1 -type d)
+DEMO_FILES = $(shell cd $(DEMOS_DIR); find . -mindepth 1 -maxdepth 1 -type f)
+DEMO_SUBDIRS = $(shell cd $(DEMOS_DIR); find . -mindepth 1 -maxdepth 1 -type d)
 DEMO_RE = (<script[^>]*_loader\.js[^>]*><\/script>|<!--\[\[|\]\]-->)[^<]*
-DEMO_SED = sed -nE '1h;1!H;$${;g;s/${DEMO_RE}//g;p;}'
+DEMO_SED = sed -ne '1h;1!H;$${;g;s/$(DEMO_RE)//g;p;}'
 
-JS_SED = sed -nE "s/[ \t]*js\([\"'](.*)[\"']\).*/\1/p"
-CSS_SED = sed -nE "s/[ \t]*css\([\"'](.*)[\"']\).*/\1/p"
+JS_SED = sed -ne "s/[ \t]*js([\"']\(.*\)[\"']).*/\1/p"
+CSS_SED = sed -ne "s/[ \t]*css([\"']\(.*\)[\"']).*/\1/p"
 
 concat_js = \
-	files=$$(cat "$(1)/_loader.js" | ${JS_SED}); \
+	files=$$($(JS_SED) "$(1)/_loader.js"); \
 	if [ -f "$(1)/intro.js" ]; then \
 		files="intro.js $$files"; \
 	fi; \
@@ -33,80 +33,110 @@ concat_js = \
 		files="$$files outro.js"; \
 	fi; \
 	old=$$PWD; \
-	(cd "$(1)"; cat $$files; cd "$$old") \
-		| ${VER_SED} \
-		| ${DATE_SED} \
-		> "$(2)"
+	if ! [ X = "X$$files" ]; then \
+		(cd "$(1)"; cat $$files; cd "$$old") \
+			| $(VER_SED) \
+			| $(DATE_SED) \
+			> "$(2)" ; \
+	fi
 	
 concat_css = \
-	files=$$(cat "$(1)/_loader.js" | ${CSS_SED}); \
-	if [ "$$files" ]; then \
+	files=$$($(CSS_SED) "$(1)/_loader.js"); \
+	if ! [ X = "X$$files" ]; then \
 		old=$$PWD; \
 		(cd "$(1)"; cat $$files; cd "$$old") \
 			| ${VER_SED} \
 			| ${DATE_SED} \
 			> "$(2)"; \
 	fi
-	
-zip:
-	@rm -rf ${BUILD_DIR}/fullcalendar
-	@rm -rf ${BUILD_DIR}/fullcalendar-*
-	@mkdir -p ${BUILD_DIR}/fullcalendar/fullcalendar/
-	
-	@echo "building core..."
-	@$(call concat_js,${SRC_DIR},"${BUILD_DIR}/fullcalendar/fullcalendar/fullcalendar.js")
-	@$(call concat_css,${SRC_DIR},"${BUILD_DIR}/fullcalendar/fullcalendar/fullcalendar.css")
-	@cat "${SRC_DIR}/common/print.css" \
-		| ${VER_SED} \
-		| ${DATE_SED} \
-		> "${BUILD_DIR}/fullcalendar/fullcalendar/fullcalendar.print.css"
-	
-	@echo "compressing core js..."
-	@java -jar ${BUILD_DIR}/compiler.jar --warning_level VERBOSE --jscomp_off checkTypes --externs build/externs.js \
-		--js ${BUILD_DIR}/fullcalendar/fullcalendar/fullcalendar.js \
-		> ${BUILD_DIR}/fullcalendar/fullcalendar/fullcalendar.min.js; \
-		
-	@echo "building plugins..."
-	@for loader in ${SRC_DIR}/*/_loader.js; do \
+
+FC_V_DIR = $(BUILD_DIR)/fullcalendar-$(VER)
+FC_DIR = $(FC_V_DIR)/fullcalendar
+FCJS = $(FC_DIR)/fullcalendar.js
+FCCSS = $(FC_DIR)/fullcalendar.css
+FCPCSS = $(FC_DIR)/fullcalendar.print.css
+FCMJS = $(FC_DIR)/fullcalendar.min.js
+JQ_DIR = $(FC_V_DIR)/jquery
+DEMOS_DIR = $(FC_V_DIR)/demos
+FC_ZIP = $(FC_V_DIR).zip
+DIST = $(DIST_DIR)/$(shell basename $(FC_ZIP))
+
+.PHONY: all distribute dist
+all: distribute
+distribute: core plugins jquery demos others
+
+.PHONY: clean
+clean: Makefile
+	rm -rf $(FC_ZIP)
+	rm -rf $(FC_V_DIR)
+	rm -rf $(DIST_DIR)
+
+$(FC_V_DIR): Makefile
+	mkdir -p $@
+
+$(FC_DIR):
+	mkdir -p $@
+
+$(DEMOS_DIR):
+	mkdir -p $@
+
+$(JQ_DIR):
+	mkdir -p $@
+
+$(DIST_DIR):
+	mkdir -p $@
+
+$(FCJS): $(FC_DIR)
+	$(call concat_js,$(SRC_DIR),$@)
+
+$(FCCSS): $(FC_DIR)
+	$(call concat_css,$(SRC_DIR),$@)
+
+$(FCPCSS): $(SRC_DIR)/common/print.css $(FC_DIR)
+	$(VER_SED) $< | $(DATE_SED) > $@
+
+.PHONY: core
+core: $(FCJS) $(FCCSS) $(FCPCSS)
+
+$(FCMJS): $(FCJS)
+	java -jar $(BUILD_DIR)/compiler.jar --warning_level VERBOSE --jscomp_off checkTypes --externs build/externs.js --js $< > $@
+
+.PHONY: plugins
+plugins: $(FCMJS) core
+	for loader in $(SRC_DIR)/*/_loader.js; do \
 		dir=`dirname $$loader`; \
 		name=`basename $$dir`; \
-		$(call concat_js,$$dir,"${BUILD_DIR}/fullcalendar/fullcalendar/$$name.js"); \
+		$(call concat_js,$$dir,$(FC_DIR)/$$name.js); \
 	done
-	
-	@echo "copying jquery..."
-	@mkdir -p ${BUILD_DIR}/fullcalendar/jquery
-	@cp lib/${JQ} ${BUILD_DIR}/fullcalendar/jquery
-	@cp lib/${JQUI} ${BUILD_DIR}/fullcalendar/jquery
-	
-	@echo "building demos..."
-	@mkdir -p ${BUILD_DIR}/fullcalendar/demos
-	@for f in ${DEMO_FILES}; do \
-		cat ${DEMOS_DIR}/$$f \
-			| ${DEMO_SED} \
+
+$(JQ_DIR)/$(JQ): lib/$(JQ) $(JQ_DIR)
+	cp $< $@
+
+$(JQ_DIR)/$(JQUI): lib/$(JQUI) $(JQ_DIR)
+	cp $< $@
+
+.PHONY: jquery
+jquery: $(JQ_DIR)/$(JQ) $(JQ_DIR)/$(JQUI)
+
+.PHONY: demos
+demos: $(FC_DIR) $(DEMOS_DIR)
+	for f in $(DEMO_FILES); do \
+		cat $(DEMOS_DIR)/$$f \
+			| $(DEMO_SED) \
 			| sed "s/jquery\.js/${JQ}/" \
 			| sed "s/jquery-ui\.js/${JQUI}/" \
-			> ${BUILD_DIR}/fullcalendar/demos/$$f; \
+			> $(DEMOS_DIR)/$$f; \
 	done
-	@for d in ${DEMO_SUBDIRS}; do \
-		cp -r ${DEMOS_DIR}/$$d ${BUILD_DIR}/fullcalendar/demos/$$d; \
+	for d in $(DEMO_SUBDIRS); do \
+		cp -r $(DEMOS_DIR)/$$d $(DEMOS_DIR)/$$d; \
 	done
-	
-	@echo "copying other files..."
-	@cp -r ${OTHER_FILES} ${BUILD_DIR}/fullcalendar
-	
-	@echo "zipping..."
-	@mv ${BUILD_DIR}/fullcalendar ${BUILD_DIR}/fullcalendar-${VER}
-	@cd ${BUILD_DIR}; for f in fullcalendar-*; do \
-		zip -q -r $$f.zip $$f; \
-		done
-	@mv ${BUILD_DIR}/fullcalendar-${VER} ${BUILD_DIR}/fullcalendar
-	
-	@mkdir -p ${DIST_DIR}
-	@mv ${BUILD_DIR}/fullcalendar-${VER}.zip ${DIST_DIR}
-	@echo "done."
 
-clean:
-	@rm -rf ${BUILD_DIR}/fullcalendar
-	@rm -rf ${BUILD_DIR}/fullcalendar-*
-	@rm -rf ${DIST_DIR}/*
-	
+.PHONY: others
+others: $(FC_DIR)
+	cp -r $(OTHER_FILES) $(FC_DIR)
+
+$(FC_ZIP): $(FC_V_DIR) distribute
+	zip -q -r $@ $<
+
+$(DIST): $(FC_ZIP) $(DIST_DIR)
+	mv $@ $<
